@@ -3,26 +3,26 @@
  *
  * @author Jonas van Ineveld
  */
-const { readdirSync } = require('fs');
-const path = require('path');
-const fs = require('fs');
+import { readdirSync } from 'fs';
+import path from 'path';
+import fs from 'fs';
 
-const rootDir = path.dirname(path.dirname(__filename));
+export const rootDir = path.resolve();
 
 // creates a unique identifier for the test so it can be organized and indexed
-const createTestId = test => {
+export const createTestId = test => {
 	return test.customer+'_'+test.test+(test.variation ? '_'+test.variation : '')
 }
 
-const getTestPath = test => {
+export const getTestPath = test => {
 	return rootDir + '/klanten/' + test.customer+'/'+test.test+(test.variation ? '/'+test.variation : '')
 }
 
-const stripWorkDir = source => {
+export const stripWorkDir = source => {
 	return source.replace(rootDir, '').replace('/klanten', '')
 }
 
-const getFile = path => {
+export const getFile = path => {
 	if(!fs.existsSync(path)){
 		return false;	
 	}
@@ -30,44 +30,45 @@ const getFile = path => {
 	return fs.readFileSync(path, 'utf8');
 }
 
-const getDirectories = source =>
-	readdirSync(source, { withFileTypes: true })
-		.filter(dirent => dirent.isDirectory())
-		.map(dirent => dirent.name);
+const getDirectories = function(source) : string[] {
+	return readdirSync(source, { withFileTypes: true })
+	.filter(dirent => dirent.isDirectory())
+	.map(dirent => dirent.name);
+}
+	
 
-const fetchEntryPoints = function() {
+export function fetchEntryPoints() {
 	let customers = getDirectories('./klanten');
 
-	customers = customers.map(customer => {
+	return customers.map(customer => {
 		let tests = getDirectories(rootDir + '/klanten/' + customer);
 
-		tests = tests.map(test => {
-			let variations = getDirectories(rootDir + '/klanten/' + customer + '/' + test);
+		return { 
+			customer, 
+			tests: tests.map(test => {
+				let variations = getDirectories(rootDir + '/klanten/' + customer + '/' + test);
 
-			variations = variations.filter(name => name !== 'generated')
+				variations = variations.filter(name => name !== 'generated')
 
-			return { test, variations }
-		})
-
-		return { customer, tests }
+				return { test, variations }
+			}) 
+		}
 	});
-
-	return customers
 };
 
-const getProjects = function() {
+export function getProjects() {
 	return getDirectories('./klanten');
 };
 
 // from https://gist.github.com/jadaradix/fd1ef195af87f6890448
-let getLines = async function getLines (filename, lineCount) {
+let getLines = async function getLines (filename, lineCount) : Promise<string[]> {
 	return new Promise((resolve, reject) => {
 		let stream = fs.createReadStream(filename, {
 			flags: 'r',
 			encoding: 'utf-8',
 			fd: null,
 			mode: 438, // 0666 in Octal
-			bufferSize: 64 * 1024
+			// bufferSize: 64 * 1024,
 		});
 
 		let data = '';
@@ -137,10 +138,10 @@ const getCssJsResourceInfo = async path => {
 		}
 	}
 }
-const getInfoFromPath = async function(path, withFileInfo = false){
+export const getInfoFromPath = async function(path, withFileInfo = false){
 	let testPath = path.replace(rootDir+ '/klanten/', ''),
 		pathParts = testPath.split('/'),
-		variation = false
+		variation : boolean | string = false
 
 	if(pathParts[2] && !pathParts[2].includes('.')){
 		variation = pathParts[2];
@@ -149,7 +150,11 @@ const getInfoFromPath = async function(path, withFileInfo = false){
 	let returnVal = {
 		'customer': pathParts[0],
 		'test': pathParts[1],
-		'variation': variation.replace ? variation.replace(/includes$/, '') : variation
+		'variation': typeof variation === 'string' ? variation.replace(/includes$/, '') : variation,
+		'stats': null,
+		'js': {
+			'headers': null
+		}
 	}
 
 	if(!withFileInfo){
@@ -169,7 +174,7 @@ const getInfoFromPath = async function(path, withFileInfo = false){
 	return returnVal
 }
 
-const ensureExists = function(path, mask, cb) {
+export const ensureExists = function(path, mask, cb) {
 	if (typeof mask == 'function') { // allow the `mask` parameter to be optional
 		cb = mask;
 		mask = '0777';
@@ -182,17 +187,7 @@ const ensureExists = function(path, mask, cb) {
 	});
 }
 
-function getProjectFolder(path){
+export function getProjectFolder(path){
 	return path.substring(0, path.lastIndexOf('/')).replace(/includes$/, '')
 }
 
-exports.getProjectFolder = getProjectFolder
-exports.getProjects = getProjects
-exports.fetchEntryPoints = fetchEntryPoints
-exports.rootDir = rootDir
-exports.stripWorkDir = stripWorkDir
-exports.getInfoFromPath = getInfoFromPath
-exports.ensureExists = ensureExists
-exports.createTestId = createTestId
-exports.getFile = getFile
-exports.getTestPath = getTestPath

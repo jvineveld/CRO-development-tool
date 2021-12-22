@@ -5,21 +5,26 @@
  * @author Jonas van Ineveld
  */
 // server
-const io = require('socket.io');
-const { urlConfig, fetchEntryPoints, rootDir, stripWorkDir, getInfoFromPath, createTestId, getFile, getTestPath } = require('./helpers');
-const _ = require('lodash');
+import { fetchEntryPoints, rootDir, stripWorkDir, getInfoFromPath, createTestId, getFile, getTestPath } from './helpers.js';
+import { createServer } from "http";
+import { Server, Socket } from "socket.io";
 
-class liveReload {
+export class liveReload {
+	activeTests = []
+	urls = []
+	url_info = []
+	requestTestFiles = null
+	subscribers = {}
+	server: Server
+
 	constructor(requestTestFiles) {
-		this.activeTests = [];
-		this.urls = []; // will hold all the urls to match on
-		this.url_info = []; // will hold url > test info based on array indes
 		this.requestTestFiles = requestTestFiles;
-		this.subscribers = {};
-		this.createTestUrlsIndex(urlConfig)
 
-		this.server = io.listen(6584);
-		this.server.on('connection', socket => this.newConnection(socket));
+		const httpServer = createServer();
+		this.server = new Server(httpServer, { /* optional settings */ });
+		this.server.on("connection", (socket: Socket) => this.newConnection(socket));
+
+		httpServer.listen(6584);
 	}
 
 	createSocketHandlers(socket){
@@ -118,35 +123,6 @@ class liveReload {
 		}
 	}
 
-	insertToUrlIndex(url, customer, test, variation = false){
-		this.urls.push(url)
-		this.url_info.push({customer, test, variation})
-	}
-
-	createTestUrlsIndex(config){
-		try {
-			for(let customer in config){
-				for(let test in config[customer]){
-					let urls = config[customer][test];
-					if(typeof urls === 'string'){
-						this.insertToUrlIndex(urls, customer, test);
-					} else if (typeof urls.variaties !== 'undefined') {
-						for(let variation of urls.variaties){
-							// console.log('gaat  goed')
-							this.insertToUrlIndex(urls.url, customer, test, variation);
-						}
-					} else {
-						for(let url of urls){
-							this.insertToUrlIndex(url, customer, test);
-						}
-					}
-				}
-			}
-		} catch (error) {
-			console.log(error)
-		}
-	}
-
 	async sendInitialUpdate(socket_id, test) {
 		let data = await this.requestTestFiles(test)
 
@@ -183,5 +159,3 @@ class liveReload {
 		}
 	}
 }
-
-exports.liveReload = liveReload;

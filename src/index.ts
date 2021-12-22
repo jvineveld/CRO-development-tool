@@ -8,33 +8,44 @@
  * @author Jonas van Ineveld
 */
 
-const chokidar = require('chokidar');
-const { rootDir, getFile, getInfoFromPath, ensureExists, stripWorkDir, getProjectFolder } = require('./helpers')
-const { rollup } = require('rollup');
-const { string } = require('rollup-plugin-string');
-const modify = require('rollup-plugin-modify');
-const babel = require('rollup-plugin-babel');
-const commonjs = require('rollup-plugin-commonjs');
-const sass = require('node-sass');
-const nodeResolve = require('rollup-plugin-node-resolve');
-const fs = require('fs');
-const moment = require('moment')
-const autoprefixer = require('autoprefixer')
-const postcss = require('postcss')
+import chokidar from 'chokidar'
+import { rootDir, getFile, getInfoFromPath, ensureExists, stripWorkDir, getProjectFolder } from './helpers.js'
+import { OutputOptions, rollup } from 'rollup';
+import { string } from 'rollup-plugin-string';
+import modify from 'rollup-plugin-modify';
+import babel from 'rollup-plugin-babel';
+import commonjs from 'rollup-plugin-commonjs';
+import sass from 'node-sass';
+import { Options as SASS_Options } from 'node-sass';
+import nodeResolve from 'rollup-plugin-node-resolve';
+import fs from 'fs';
+import moment from 'moment'
+import autoprefixer from 'autoprefixer'
+import postcss from 'postcss'
 
 // const cliSpinners = require('cli-spinners');
-const ora = require('ora');
-const chalk = require('chalk');
+import ora from 'ora';
+import chalk from 'chalk';
 
-const { liveReload } = require('./live-reload-server');
-const { terser } = require('rollup-plugin-terser');
-const prettier = require('rollup-plugin-prettier');
-const json = require('rollup-plugin-json');
+import { liveReload } from './live-reload-server.js';
+import { terser } from 'rollup-plugin-terser';
+import prettier from 'rollup-plugin-prettier';
+import json from 'rollup-plugin-json';
 // const {rollupExtractConfig} = require('./rollup-extract-config');
 
 const defaultBrowserTarget = 'Edge >=12 and > 0% in alt-EU, Firefox >= 30 and > 0% in alt-EU, Chrome >= 30 and > 0% in alt-EU, Safari >= 7.1 and > 0% in alt-EU, ios_saf >= 6.0 and > 0% in alt-EU, last 1 and_ff version and > 0% in alt-EU, last 1 and_chr versions and > 0% in alt-EU, samsung >= 8.2 and > 0% in alt-EU, android >= 4.2 and > 0% in alt-EU';
 
-const babelOptions = (env = 'dev', babelOptions = {}) => {
+interface BabelOptionsObj {
+	browserTarget?: string,
+	longParse?: boolean
+}
+
+interface BundleOptionsObj {
+	babelOptions?: BabelOptionsObj,
+	preventMinify?: boolean
+}
+
+const babelOptions = (env = 'dev', babelOptions: BabelOptionsObj) => {
 	let config = {
 		'runtimeHelpers': true,
 		'presets': [
@@ -58,25 +69,25 @@ const babelOptions = (env = 'dev', babelOptions = {}) => {
 	}
 
 	if(babelOptions.longParse){
-		config.presets[0][1].corejs = '2';
-		config.presets[0][1].useBuiltIns = 'usage';
+		// config.presets[0][1].corejs = '2';
+		// config.presets[0][1].useBuiltIns = 'usage';
 	}
 
-	if(babelOptions.debug){
-		config.presets[0][1].debug = true;
-	}
+	// if(babelOptions.debug){
+	// 	config.presets[0][1].debug = true;
+	// }
 
 	if(env==='prod'){
-		config.plugins.push(['transform-remove-console', {'exclude': [ 'error', 'warn']}]);
+		// config.plugins.push(['transform-remove-console', {'exclude': [ 'error', 'warn']}]);
 	}
 
 	return config;
 }
 
-const bundleOptions = (env='dev', bundleOptions = {}) => {
+const bundleOptions = (env='dev', bundleOptions: BundleOptionsObj) => {
 	const bundlerModules = [
 		babel(babelOptions(env, bundleOptions.babelOptions)), 	// transpile ESX TO ES5
-		nodeResolve({mainFields: 'browser'}), 					// Resolve node modules
+		nodeResolve(), 											// Resolve node modules
 		commonjs(),												// common things?
 		string({												// support for including .html files as import
 			include: '**/*.html',
@@ -152,8 +163,14 @@ const requestTestFiles = async function(test){
 
 const reloadSocket = new liveReload(requestTestFiles);
 
-const buildBundle = async function(path, type = 'dev', extraSettings = false){
-	let bundleSetting = {
+interface BuildBundleExtraSettings {
+	browserList: string,
+	parser: string,
+	nominify: boolean
+}
+
+const buildBundle = async function(path, type = 'dev', extraSettings: BuildBundleExtraSettings){
+	let bundleSetting: BundleOptionsObj = {
 		babelOptions: {}
 	};
 
@@ -184,42 +201,42 @@ const buildBundle = async function(path, type = 'dev', extraSettings = false){
 	});
 
 	let projectFolder = path.substring(0, path.lastIndexOf('/')),
+		bundleWriteOutputOptions: OutputOptions = {
+			file: '',
+			format: 'iife',
+			intro: `
+/**
+* SiteSpect Development
+* Compiled: ` + moment().format('DD-MM-YYYY HH:mm:ss') + `
+**/
+`
+		},
 		bundleWriteOptions = {
+			sourceMap: 'inline',
 			strict : false,
 			'runtimeHelpers': false,
 			plugins: bundlePlugins,
-			output: {
-				format: 'iife',
-				intro: `
-/**
- * SiteSpect Development
- * Compiled: ` + moment().format('DD-MM-YYYY HH:mm:ss') + `
- **/
-`
-			}
+			output: bundleWriteOutputOptions
 		};
 
 	switch(type){
 	case 'dev':
 		bundleWriteOptions.sourceMap = 'inline'
-		bundleWriteOptions.output.file = projectFolder + '/generated/dev/output.js'
+		bundleWriteOutputOptions.file = projectFolder + '/generated/dev/output.js'
 		break;
 	case 'prod':
-		bundleWriteOptions.output.file = projectFolder + '/generated/prod/output.js'
+		bundleWriteOutputOptions.file = projectFolder + '/generated/prod/output.js'
 		break;
 	}
 
-	let output = await bundle.write(bundleWriteOptions.output);
+	let output = await bundle.write(bundleWriteOutputOptions);
 
 	if(output.output[0].code){
 
 		let codeWithComment = output.output[0].code.replace(/\n$/g, '') + '\n/* Compiled: ' + moment().format('DD-MM-YYYY HH:mm:ss') + ' */';
 
-		fs.writeFileSync(bundleWriteOptions.output.file, codeWithComment, function (err) {
-			if (err) {throw err;}
-			
-			console.log('✓ Bundled, commented and moved into extension');
-		});
+		fs.writeFileSync(bundleWriteOptions.output.file, codeWithComment);
+		console.log('✓ Bundled, commented and moved into extension');
 	
 	}
 
@@ -228,7 +245,7 @@ const buildBundle = async function(path, type = 'dev', extraSettings = false){
 
 const compilationSuccess = function(file, type){
 	let time = moment().format('HH:mm:ss')
-	console.log(chalk.white(chalk.bgGreenBright.black(' Lekker bezig! ') + ' ' + chalk.bgWhite.black(' '+ time+ ' ') + ' ' + chalk.bgWhite.black(' '+type+' ') + ' ' + stripWorkDir(file)));
+	console.log(chalk.white(chalk.bgGreenBright.black(' Nice! ') + ' ' + chalk.bgWhite.black(' '+ time+ ' ') + ' ' + chalk.bgWhite.black(' '+type+' ') + ' ' + stripWorkDir(file)));
 }
 
 const buildSiteSpectInclude = (changedFilePath) => {
@@ -284,11 +301,15 @@ ${prodJs}
 	});
 }
 
+type SASS_OutputStyle = "compact" | "compressed" | "expanded" | "nested"
+
 const buildSass = async (path, type = 'dev') => {
 	let projectFolder = getProjectFolder(path),
-		buildOptions = {
+		buildOptions: SASS_Options = {
 			file: projectFolder+'/index.scss',
-			outFile: null
+			outFile: null,
+			outputStyle: 'compact',
+			sourceMap: false
 		}
 
 	if(!path.includes('.scss', '.sass')){
@@ -327,7 +348,7 @@ const buildSass = async (path, type = 'dev') => {
 						cssResult = result.css.toString().replace(/^\n/gm, '')
 
 						if(type==='prod'){
-							postcss([ autoprefixer({ overrideBrowserslist: 'last 3 versions' }) ]).process(cssResult, { map: false, from: false }).then(result => {
+							postcss([ autoprefixer({ overrideBrowserslist: 'last 3 versions' }) ]).process(cssResult, { map: false }).then(result => {
 								result.warnings().forEach(warn => {
 									console.warn(warn.toString())
 								})
@@ -415,7 +436,9 @@ const buildJavascript = async path => {
 	}
 
 	spinner.text = 'Bundeling & transpiling JS dev';
-	let devJSBundle = {}
+	let devJSBundle = {
+		output: []
+	}
 	try {
 		devJSBundle = await buildBundle(path, 'dev', testinfo.js.headers).catch(err => {
 			console.error(err)
@@ -465,9 +488,11 @@ const listenToFileChanges = function(){
 }
 
 const initTool = function(){
-	console.log(chalk.white(chalk.bgRgb(222, 114, 13).white(' SiteSpect ') + ' CRO Development 4 life ♡'));
+	console.log('/** ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
+	console.log(' * CRO Development 4 life ♡');
 	listenToFileChanges(); // Use Chokadir to check for filechanges
-	console.log('Alle projecten worden nu gecheckt. Have fun!')
+	console.log(' * All projects are being watched. Have fun!')
+	console.log(' * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */');
 	console.log('\n')
 }
 

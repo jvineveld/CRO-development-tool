@@ -2,15 +2,17 @@
   "name": "cro-development-tool",
   "version": "1.0.0",
   "description": "A tool to quickly developer CRO tests with your favorite editor, using live reload, with SCSS and ES6 support",
-  "main": "logic/start-test-development.js",
+  "main": "build/index.js",
   "scripts": {
-    "start": "node logic/start-test-development.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node build/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc --project ./"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jvineveld/CRO-development-tool.git"
   },
+  "type": "module",
   "keywords": [
     "CRO",
     "development"
@@ -22,7 +24,28 @@
   },
   "homepage": "https://github.com/jvineveld/CRO-development-tool#readme",
   "dependencies": {
+    "@babel/core": "^7.16.5",
+    "autoprefixer": "^10.4.0",
+    "chalk": "^5.0.0",
     "chokidar": "^3.5.2",
-    "rollup": "^2.61.1"
+    "moment": "^2.29.1",
+    "node-sass": "^7.0.0",
+    "ora": "^6.0.1",
+    "postcss": "^8.4.5",
+    "prettier": "^2.5.1",
+    "rollup": "^2.61.1",
+    "rollup-plugin-babel": "^4.4.0",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-json": "^4.0.0",
+    "rollup-plugin-modify": "^3.0.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-prettier": "^2.2.0",
+    "rollup-plugin-string": "^3.0.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "socket.io": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/node-sass": "^4.11.2",
+    "typescript": "^4.5.4"
   }
 }
