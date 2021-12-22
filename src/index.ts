@@ -301,8 +301,6 @@ ${prodJs}
 	});
 }
 
-type SASS_OutputStyle = "compact" | "compressed" | "expanded" | "nested"
-
 const buildSass = async (path, type = 'dev') => {
 	let projectFolder = getProjectFolder(path),
 		buildOptions: SASS_Options = {
