@@ -1,0 +1,20 @@
+{
+	"name": "CRO live reload",
+	"version": "0.0.1",
+	"manifest_version": 2,
+	"description": "Deze plugin herlaad de huidige pagina tijdens het werken aan CRO tests, en injecteerd het project waarin je veranderingen maakt in de pagina.",
+	"homepage_url": "https://orangevalley.nl",
+	"content_scripts": [
+		{
+			"run_at": "document_end",
+			"matches": ["https://*/*", "http://*/*"],
+			"js": ["assets/socket-io.js", "content-scripts/ov-cro-inject.js"]
+		}
+	],
+	"devtools_page": "init_devtools.html",
+	"content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+	"browser_action": {
+		"default_title": "OV CRO - Live reload"
+	},
+	"permissions": ["https://*/*", "http://*/*", "tabs"]
+}

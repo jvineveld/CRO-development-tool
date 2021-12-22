@@ -1,0 +1,31 @@
+{
+	"name": "cro-devtools-app",
+	"version": "1.0.0",
+	"description": "A devtools app to control the active live reload tests",
+	"author": "Jonas van Ineveld",
+	"private": true,
+	"scripts": {
+		"dev": "nuxt",
+		"build": "nuxt build",
+		"start": "nuxt start",
+		"generate": "nuxt generate"
+	},
+	"dependencies": {
+		"@nuxtjs/moment": "^1.6.1",
+		"@nuxtjs/router": "^1.6.1",
+		"ant-design-vue": "^1.7.6",
+		"copy-to-clipboard": "^3.3.1",
+		"node-sass": "^4.13.1",
+		"nuxt": "^2.15.7",
+		"socket.io-client": "^2.4.0",
+		"vue-socket.io-extended": "^3.2.2"
+	},
+	"devDependencies": {
+		"coffee-loader": "^0.9.0",
+		"coffeescript": "^2.5.1",
+		"nodemon": "^2.0.12",
+		"pug": "^3.0.2",
+		"pug-plain-loader": "^1.1.0",
+		"sass-loader": "^7.3.1"
+	}
+}

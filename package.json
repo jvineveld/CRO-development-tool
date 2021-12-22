@@ -1,0 +1,28 @@
+{
+  "name": "cro-development-tool",
+  "version": "1.0.0",
+  "description": "A tool to quickly developer CRO tests with your favorite editor, using live reload, with SCSS and ES6 support",
+  "main": "logic/start-test-development.js",
+  "scripts": {
+    "start": "node logic/start-test-development.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jvineveld/CRO-development-tool.git"
+  },
+  "keywords": [
+    "CRO",
+    "development"
+  ],
+  "author": "Jonas van Ineveld",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jvineveld/CRO-development-tool/issues"
+  },
+  "homepage": "https://github.com/jvineveld/CRO-development-tool#readme",
+  "dependencies": {
+    "chokidar": "^3.5.2",
+    "rollup": "^2.61.1"
+  }
+}
