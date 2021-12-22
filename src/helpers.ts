@@ -15,7 +15,7 @@ export const createTestId = test => {
 }
 
 export const getTestPath = test => {
-	return rootDir + '/klanten/' + test.customer+'/'+test.test+(test.variation ? '/'+test.variation : '')
+	return path.join(rootDir,'klanten',test.customer,test.test,(test.variation ? '/'+test.variation : ''))
 }
 
 export const stripWorkDir = source => {
@@ -41,12 +41,12 @@ export function fetchEntryPoints() {
 	let customers = getDirectories('./klanten');
 
 	return customers.map(customer => {
-		let tests = getDirectories(rootDir + '/klanten/' + customer);
+		let tests = getDirectories(path.join(rootDir, 'klanten', customer));
 
 		return { 
 			customer, 
 			tests: tests.map(test => {
-				let variations = getDirectories(rootDir + '/klanten/' + customer + '/' + test);
+				let variations = getDirectories(path.join(rootDir, 'klanten', customer, test));
 
 				variations = variations.filter(name => name !== 'generated')
 
@@ -129,12 +129,12 @@ const getCssJsResourceInfo = async path => {
 	let basePath = path.replace('index.js', '').replace('index.scss', '')
 	return {
 		css: {
-			headers: await getCommentHeaders(basePath + '/index.scss'),
-			prodInfo: await getFileInfo(basePath + '/generated/prod/output.css')
+			headers: await getCommentHeaders(path.join(basePath, 'index.scss')),
+			prodInfo: await getFileInfo(path.join(basePath, 'generated', 'prod', 'output.css'))
 		}, 
 		js: {
-			headers: await getCommentHeaders(basePath + '/index.js'),
-			prodInfo: await getFileInfo(basePath + '/generated/prod/output.js')
+			headers: await getCommentHeaders(path.join(basePath, 'index.js')),
+			prodInfo: await getFileInfo(path.join(basePath, 'generated', 'prod', 'output.js'))
 		}
 	}
 }

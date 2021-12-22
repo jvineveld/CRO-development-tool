@@ -19,6 +19,7 @@ import sass from 'node-sass';
 import { Options as SASS_Options } from 'node-sass';
 import nodeResolve from 'rollup-plugin-node-resolve';
 import fs from 'fs';
+import path from 'path';
 import moment from 'moment'
 import autoprefixer from 'autoprefixer'
 import postcss from 'postcss'
@@ -150,9 +151,9 @@ const getResource = async function(path){
 }
 
 const requestTestFiles = async function(test){
-	let testDir = rootDir+'/klanten/'+test.customer+'/'+test.test + ( test.variation ? '/' + test.variation : '' ),
-		cssDevPath = testDir+'/generated/dev/output.css',
-		jsDevPath = testDir+'/generated/dev/output.js'
+	let testDir = path.join(rootDir, 'klanten', test.customer, '/', test.test, ( test.variation ? test.variation : '' )),
+		cssDevPath = path.join(testDir,'generated', 'dev', 'output.css'),
+		jsDevPath = path.join(testDir,'generated','dev', 'output.js')
 
 	// console.log({test, testDir, cssDevPath, jsDevPath})
 	let css = await getResource(cssDevPath),
@@ -202,11 +203,11 @@ const buildBundle = async function(path, type = 'dev', extraSettings: BuildBundl
 
 	let projectFolder = path.substring(0, path.lastIndexOf('/')),
 		bundleWriteOutputOptions: OutputOptions = {
-			file: '',
+			file: path.join(projectFolder, 'generated', type, 'output.js'),
 			format: 'iife',
 			intro: `
 /**
-* SiteSpect Development
+* CRO Development
 * Compiled: ` + moment().format('DD-MM-YYYY HH:mm:ss') + `
 **/
 `
@@ -222,10 +223,8 @@ const buildBundle = async function(path, type = 'dev', extraSettings: BuildBundl
 	switch(type){
 	case 'dev':
 		bundleWriteOptions.sourceMap = 'inline'
-		bundleWriteOutputOptions.file = projectFolder + '/generated/dev/output.js'
 		break;
 	case 'prod':
-		bundleWriteOutputOptions.file = projectFolder + '/generated/prod/output.js'
 		break;
 	}
 
@@ -237,7 +236,6 @@ const buildBundle = async function(path, type = 'dev', extraSettings: BuildBundl
 
 		fs.writeFileSync(bundleWriteOptions.output.file, codeWithComment);
 		console.log('✓ Bundled, commented and moved into extension');
-	
 	}
 
 	return output;
@@ -251,12 +249,12 @@ const compilationSuccess = function(file, type){
 const buildSiteSpectInclude = (changedFilePath) => {
 	let projectFolder = getProjectFolder(changedFilePath);
 
-	const devJs = getFile(projectFolder + '/generated/dev/output.js'),
-		devStyle = getFile(projectFolder + '/generated/dev/output.css'),
-		prodJs = getFile(projectFolder + '/generated/prod/output.js'),
-		prodStyle = getFile(projectFolder + '/generated/prod/output.css'),
-		devOutFile = projectFolder + '/generated/sitespect-dev.html',
-		prodOutFile = projectFolder + '/generated/sitespect-prod.html';
+	const devJs = getFile(path.join(projectFolder, 'generated', 'dev', 'output.js')),
+		devStyle = getFile(path.join(projectFolder, 'generated', 'dev', 'output.css')),
+		prodJs = getFile(path.join(projectFolder, 'generated', 'prod', 'output.js')),
+		prodStyle = getFile(path.join(projectFolder, 'generated', 'prod', 'output.css')),
+		devOutFile = path.join(projectFolder, 'generated', 'dev', 'sitespect.html'),
+		prodOutFile = path.join(projectFolder, 'generated', 'prof','sitespect.html');
 
 	let prodCode = '',
 		devCode = '';
@@ -301,16 +299,16 @@ ${prodJs}
 	});
 }
 
-const buildSass = async (path, type = 'dev') => {
-	let projectFolder = getProjectFolder(path),
+const buildSass = async (targetPpath, type = 'dev') => {
+	let projectFolder = getProjectFolder(targetPpath),
 		buildOptions: SASS_Options = {
-			file: projectFolder+'/index.scss',
+			file: path.join(projectFolder, 'index.scss'),
 			outFile: null,
 			outputStyle: 'compact',
 			sourceMap: false
 		}
 
-	if(!path.includes('.scss', '.sass')){
+	if(!targetPpath.includes('.scss', '.sass')){
 		return;
 	}
 
@@ -318,13 +316,12 @@ const buildSass = async (path, type = 'dev') => {
 
 	switch(type){
 	case 'dev':
-		projectFolder + '/generated/prod/output.css'
-		buildOptions.outFile = projectFolder + '/generated/dev/output.css';
+		buildOptions.outFile = path.join(projectFolder, 'generated', 'dev', 'output.css');
 		buildOptions.outputStyle = 'compact';
 		buildOptions.sourceMap = false;
 		break;
 	case 'prod':
-		buildOptions.outFile = projectFolder + '/generated/prod/output.css'
+		buildOptions.outFile = path.join(projectFolder, 'generated', 'prod', 'output.css')
 		buildOptions.outputStyle = 'compact';
 
 		break;
@@ -481,7 +478,7 @@ const listenToFileChanges = function(){
 		alwaysStat: false,
 	}
 
-	const changeWatcher = chokidar.watch(rootDir+'/klanten', chokidarSettings);
+	const changeWatcher = chokidar.watch(path.join(rootDir,'klanten'), chokidarSettings);
 	changeWatcher.on('change', fileChanged)
 }
 
