@@ -5,7 +5,8 @@
  * @author Jonas van Ineveld
  */
 // server
-import { fetchEntryPoints, rootDir, stripWorkDir, getInfoFromPath, createTestId, getFile, getTestPath } from './helpers.js';
+import { fetchEntryPoints, rootDir, currentConfig, getInfoFromPath, createTestId, getFile, getTestPath } from './helpers.js';
+import path from 'path';
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 
@@ -36,7 +37,7 @@ export class liveReload {
 		});
 		socket.on('get_test_info', async data => {
 			let path = data.testPath,
-				info = await getInfoFromPath(rootDir + '/klanten/'+path);
+				info = await getInfoFromPath(path.join(rootDir, currentConfig.rootDir, path));
 
 			setTimeout(() => socket.emit('got_test_info', { info }), 400);
 		})
@@ -44,12 +45,12 @@ export class liveReload {
 			this.addSubscriber(test, socket.id)
 		})
 		socket.on('fetch_prod_css_content', ({test}) => {
-			let cssFile = getTestPath(test.info) + '/generated/prod/output.css'
+			let cssFile = path.join(getTestPath(test.info), 'generated','prod', 'output.css')
 			
 			socket.emit('css_file_contents', getFile(cssFile));
 		})
 		socket.on('fetch_prod_js_content', ({test}) => {
-			let jsFile = getTestPath(test.info) + '/generated/prod/output.js'
+			let jsFile = path.join(getTestPath(test.info), 'generated','prod', 'output.js')
 			
 			socket.emit('js_file_contents', getFile(jsFile));
 		})

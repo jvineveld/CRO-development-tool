@@ -9,25 +9,46 @@ import fs from 'fs';
 
 export const rootDir = path.resolve();
 
+interface CustomConfig {
+	"browserTarget": string,
+	"rootDir": string
+}
+
+const getConfig = () : CustomConfig => {
+	const defaultConfig: CustomConfig = {
+		"browserTarget": "Edge >=12 and > 0% in alt-EU, Firefox >= 30 and > 0% in alt-EU, Chrome >= 30 and > 0% in alt-EU, Safari >= 7.1 and > 0% in alt-EU, ios_saf >= 6.0 and > 0% in alt-EU, last 1 and_ff version and > 0% in alt-EU, last 1 and_chr versions and > 0% in alt-EU, samsung >= 8.2 and > 0% in alt-EU, android >= 4.2 and > 0% in alt-EU",
+		"rootDir": "customers"
+	}
+
+	const configFile = path.join(path.resolve(), 'config.json')
+	if(!fs.existsSync(configFile)){
+		return defaultConfig
+	}
+
+	return {...defaultConfig, ...JSON.parse(fs.readFileSync(configFile, 'utf8')) }
+}
+
+export const currentConfig = getConfig()
+
 // creates a unique identifier for the test so it can be organized and indexed
 export const createTestId = test => {
 	return test.customer+'_'+test.test+(test.variation ? '_'+test.variation : '')
 }
 
 export const getTestPath = test => {
-	return path.join(rootDir,'klanten',test.customer,test.test,(test.variation ? '/'+test.variation : ''))
+	return path.join(rootDir, currentConfig.rootDir,test.customer,test.test,(test.variation ? '/'+test.variation : ''))
 }
 
-export const stripWorkDir = source => {
-	return source.replace(rootDir, '').replace('/klanten', '')
+export const stripWorkDir = (source: string) => {
+	return source.replace(rootDir, '').replace('/'+currentConfig.rootDir, '')
 }
 
-export const getFile = path => {
-	if(!fs.existsSync(path)){
+export const getFile = (targetPath: string) => {
+	if(!fs.existsSync(targetPath)){
 		return false;	
 	}
 
-	return fs.readFileSync(path, 'utf8');
+	return fs.readFileSync(targetPath, 'utf8');
 }
 
 const getDirectories = function(source) : string[] {
@@ -38,15 +59,15 @@ const getDirectories = function(source) : string[] {
 	
 
 export function fetchEntryPoints() {
-	let customers = getDirectories('./klanten');
+	let customers = getDirectories('./'+currentConfig.rootDir);
 
 	return customers.map(customer => {
-		let tests = getDirectories(path.join(rootDir, 'klanten', customer));
+		let tests = getDirectories(path.join(rootDir, currentConfig.rootDir, customer));
 
 		return { 
 			customer, 
 			tests: tests.map(test => {
-				let variations = getDirectories(path.join(rootDir, 'klanten', customer, test));
+				let variations = getDirectories(path.join(rootDir, currentConfig.rootDir, customer, test));
 
 				variations = variations.filter(name => name !== 'generated')
 
@@ -57,7 +78,7 @@ export function fetchEntryPoints() {
 };
 
 export function getProjects() {
-	return getDirectories('./klanten');
+	return getDirectories('./'+currentConfig.rootDir);
 };
 
 // from https://gist.github.com/jadaradix/fd1ef195af87f6890448
@@ -95,11 +116,11 @@ let getLines = async function getLines (filename, lineCount) : Promise<string[]>
 };
   
 
-const getCommentHeaders = async path => {
-	if(!fs.existsSync(path)){
+const getCommentHeaders = async (targetPath: string) => {
+	if(!fs.existsSync(targetPath)){
 		return {};	
 	}
-	let lines = await getLines(path, 20),
+	let lines = await getLines(targetPath, 20),
 		headers = {};
 
 	for(let line of lines){
@@ -115,18 +136,18 @@ const getCommentHeaders = async path => {
 	return headers;
 }
 
-const getFileInfo = async (path) => {
-	if(!fs.existsSync(path)){
+const getFileInfo = async (targetPath) => {
+	if(!fs.existsSync(targetPath)){
 		return false;	
 	}
 
-	let stats = fs.statSync(path)
+	let stats = fs.statSync(targetPath)
 
 	return stats;
 }
 
-const getCssJsResourceInfo = async path => {
-	let basePath = path.replace('index.js', '').replace('index.scss', '')
+const getCssJsResourceInfo = async (targetPath: string) => {
+	let basePath = targetPath.replace('index.js', '').replace('index.scss', '')
 	return {
 		css: {
 			headers: await getCommentHeaders(path.join(basePath, 'index.scss')),
@@ -138,8 +159,8 @@ const getCssJsResourceInfo = async path => {
 		}
 	}
 }
-export const getInfoFromPath = async function(path, withFileInfo = false){
-	let testPath = path.replace(rootDir+ '/klanten/', ''),
+export const getInfoFromPath = async function(targetPath: string, withFileInfo = false){
+	let testPath = targetPath.replace(rootDir+ '/klanten/', ''),
 		pathParts = testPath.split('/'),
 		variation : boolean | string = false
 
@@ -158,11 +179,11 @@ export const getInfoFromPath = async function(path, withFileInfo = false){
 	}
 
 	if(!withFileInfo){
-		if(fs.existsSync(path)){
+		if(fs.existsSync(targetPath)){
 			returnVal = { 
 				...returnVal, 
-				...await getCssJsResourceInfo(path),
-				stats: await getFileInfo(path)
+				...await getCssJsResourceInfo(targetPath),
+				stats: await getFileInfo(targetPath)
 			}
 		} else {
 			returnVal.stats = {
@@ -174,7 +195,7 @@ export const getInfoFromPath = async function(path, withFileInfo = false){
 	return returnVal
 }
 
-export const ensureExists = function(path, mask, cb) {
+export const ensureExists = function(path: string, mask, cb) {
 	if (typeof mask == 'function') { // allow the `mask` parameter to be optional
 		cb = mask;
 		mask = '0777';

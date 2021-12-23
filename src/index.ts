@@ -9,7 +9,7 @@
 */
 
 import chokidar from 'chokidar'
-import { rootDir, getFile, getInfoFromPath, ensureExists, stripWorkDir, getProjectFolder } from './helpers.js'
+import { rootDir, getFile, getInfoFromPath, ensureExists, stripWorkDir, getProjectFolder, currentConfig } from './helpers.js'
 import { OutputOptions, rollup } from 'rollup';
 import { string } from 'rollup-plugin-string';
 import modify from 'rollup-plugin-modify';
@@ -34,7 +34,7 @@ import prettier from 'rollup-plugin-prettier';
 import json from 'rollup-plugin-json';
 // const {rollupExtractConfig} = require('./rollup-extract-config');
 
-const defaultBrowserTarget = 'Edge >=12 and > 0% in alt-EU, Firefox >= 30 and > 0% in alt-EU, Chrome >= 30 and > 0% in alt-EU, Safari >= 7.1 and > 0% in alt-EU, ios_saf >= 6.0 and > 0% in alt-EU, last 1 and_ff version and > 0% in alt-EU, last 1 and_chr versions and > 0% in alt-EU, samsung >= 8.2 and > 0% in alt-EU, android >= 4.2 and > 0% in alt-EU';
+const defaultBrowserTarget = currentConfig.browserTarget
 
 interface BabelOptionsObj {
 	browserTarget?: string,
@@ -151,7 +151,7 @@ const getResource = async function(path){
 }
 
 const requestTestFiles = async function(test){
-	let testDir = path.join(rootDir, 'klanten', test.customer, '/', test.test, ( test.variation ? test.variation : '' )),
+	let testDir = path.join(rootDir, currentConfig.rootDir, test.customer, '/', test.test, ( test.variation ? test.variation : '' )),
 		cssDevPath = path.join(testDir,'generated', 'dev', 'output.css'),
 		jsDevPath = path.join(testDir,'generated','dev', 'output.js')
 
@@ -170,7 +170,7 @@ interface BuildBundleExtraSettings {
 	nominify: boolean
 }
 
-const buildBundle = async function(path, type = 'dev', extraSettings: BuildBundleExtraSettings){
+const buildBundle = async function(targetPath: string, type = 'dev', extraSettings: BuildBundleExtraSettings){
 	let bundleSetting: BundleOptionsObj = {
 		babelOptions: {}
 	};
@@ -194,14 +194,14 @@ const buildBundle = async function(path, type = 'dev', extraSettings: BuildBundl
 	let bundlePlugins = bundleOptions(type, bundleSetting);
 
 	let bundle = await rollup({
-		input: path,
+		input: targetPath,
 		plugins: bundlePlugins,
 		output: {
 			intro: '/* Compiled: ' + moment().format('DD-MM-YYYY HH:mm:ss') + ' */'
 		}
 	});
 
-	let projectFolder = path.substring(0, path.lastIndexOf('/')),
+	let projectFolder = targetPath.substring(0, targetPath.lastIndexOf('/')),
 		bundleWriteOutputOptions: OutputOptions = {
 			file: path.join(projectFolder, 'generated', type, 'output.js'),
 			format: 'iife',
@@ -235,13 +235,12 @@ const buildBundle = async function(path, type = 'dev', extraSettings: BuildBundl
 		let codeWithComment = output.output[0].code.replace(/\n$/g, '') + '\n/* Compiled: ' + moment().format('DD-MM-YYYY HH:mm:ss') + ' */';
 
 		fs.writeFileSync(bundleWriteOptions.output.file, codeWithComment);
-		console.log('✓ Bundled, commented and moved into extension');
 	}
 
 	return output;
 }
 
-const compilationSuccess = function(file, type){
+const compilationSuccess = function(file: string, type){
 	let time = moment().format('HH:mm:ss')
 	console.log(chalk.white(chalk.bgGreenBright.black(' Nice! ') + ' ' + chalk.bgWhite.black(' '+ time+ ' ') + ' ' + chalk.bgWhite.black(' '+type+' ') + ' ' + stripWorkDir(file)));
 }
@@ -253,8 +252,8 @@ const buildSiteSpectInclude = (changedFilePath) => {
 		devStyle = getFile(path.join(projectFolder, 'generated', 'dev', 'output.css')),
 		prodJs = getFile(path.join(projectFolder, 'generated', 'prod', 'output.js')),
 		prodStyle = getFile(path.join(projectFolder, 'generated', 'prod', 'output.css')),
-		devOutFile = path.join(projectFolder, 'generated', 'dev', 'sitespect.html'),
-		prodOutFile = path.join(projectFolder, 'generated', 'prof','sitespect.html');
+		devOutFile = path.join(projectFolder, 'generated', 'dev', 'output.html'),
+		prodOutFile = path.join(projectFolder, 'generated', 'prod','output.html');
 
 	let prodCode = '',
 		devCode = '';
@@ -299,8 +298,8 @@ ${prodJs}
 	});
 }
 
-const buildSass = async (targetPpath, type = 'dev') => {
-	let projectFolder = getProjectFolder(targetPpath),
+const buildSass = async (targetPath, type = 'dev') => {
+	let projectFolder = getProjectFolder(targetPath),
 		buildOptions: SASS_Options = {
 			file: path.join(projectFolder, 'index.scss'),
 			outFile: null,
@@ -308,7 +307,7 @@ const buildSass = async (targetPpath, type = 'dev') => {
 			sourceMap: false
 		}
 
-	if(!targetPpath.includes('.scss', '.sass')){
+	if(!targetPath.includes('.scss', '.sass')){
 		return;
 	}
 
@@ -343,7 +342,7 @@ const buildSass = async (targetPpath, type = 'dev') => {
 						cssResult = result.css.toString().replace(/^\n/gm, '')
 
 						if(type==='prod'){
-							postcss([ autoprefixer({ overrideBrowserslist: 'last 3 versions' }) ]).process(cssResult, { map: false }).then(result => {
+							postcss([ autoprefixer({ overrideBrowserslist: 'last 3 versions' }) ]).process(cssResult, { map: false, from: undefined }).then(result => {
 								result.warnings().forEach(warn => {
 									console.warn(warn.toString())
 								})
@@ -399,7 +398,7 @@ const buildSass = async (targetPpath, type = 'dev') => {
 		spinner.stop();
 		compilationSuccess(buildOptions.outFile, 'css');
 		lastCompiledResources.css = cssResult.toString();
-		let testinfo = await getInfoFromPath(path)
+		let testinfo = await getInfoFromPath(targetPath)
 
 		// console.log('sending path info', testinfo)
 
@@ -409,17 +408,17 @@ const buildSass = async (targetPpath, type = 'dev') => {
 	spinner.stop();
 }
 
-const buildJavascript = async path => {
-	if(!path.includes('.js')){
+const buildJavascript = async targetPath => {
+	if(!targetPath.includes('.js')){
 		return;
 	}
 
 	const spinner = ora({text:'Bundeling & transpiling JS prod', interval: 10}).start();
 
-	let testinfo = await getInfoFromPath(path)
+	let testinfo = await getInfoFromPath(targetPath)
 
 	try {
-		await buildBundle(path, 'prod', testinfo.js.headers).catch(err => {
+		await buildBundle(targetPath, 'prod', testinfo.js.headers).catch(err => {
 			console.error(err)
 			throw new Error('Error transpiling');
 		})
@@ -435,7 +434,7 @@ const buildJavascript = async path => {
 		output: []
 	}
 	try {
-		devJSBundle = await buildBundle(path, 'dev', testinfo.js.headers).catch(err => {
+		devJSBundle = await buildBundle(targetPath, 'dev', testinfo.js.headers).catch(err => {
 			console.error(err)
 			throw new Error('Error transpiling ');
 		})
@@ -447,14 +446,14 @@ const buildJavascript = async path => {
 
 	lastCompiledResources.js = devJSBundle.output[0].code;
 	spinner.stop();
-	compilationSuccess(path, 'js');
+	compilationSuccess(targetPath, 'js');
 
 
 	// console.log('testinfo',testinfo)
 	reloadSocket.sendJSUpdate(lastCompiledResources, testinfo)
 }
 
-const fileChanged = async path => {
+const fileChanged = async (path: string) => {
 	if(path.includes('index.js')){
 		await buildJavascript(path)
 
@@ -478,7 +477,7 @@ const listenToFileChanges = function(){
 		alwaysStat: false,
 	}
 
-	const changeWatcher = chokidar.watch(path.join(rootDir,'klanten'), chokidarSettings);
+	const changeWatcher = chokidar.watch(path.join(rootDir,currentConfig.rootDir), chokidarSettings);
 	changeWatcher.on('change', fileChanged)
 }
 

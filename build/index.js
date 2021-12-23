@@ -1,12 +1,3 @@
-/**
- * This file will start a watcher on the /klanten/ folder
- * when a change has been found in a file, it will try to compile the assats with babel
- * and create a bundled file
- *
- * use the chrome plugin for hot reloading current page with css and js inject
- *
- * @author Jonas van Ineveld
-*/
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -17,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import chokidar from 'chokidar';
-import { rootDir, getFile, getInfoFromPath, ensureExists, stripWorkDir, getProjectFolder } from './helpers.js';
+import { rootDir, getFile, getInfoFromPath, ensureExists, stripWorkDir, getProjectFolder, currentConfig } from './helpers.js';
 import { rollup } from 'rollup';
 import { string } from 'rollup-plugin-string';
 import modify from 'rollup-plugin-modify';
@@ -26,18 +17,17 @@ import commonjs from 'rollup-plugin-commonjs';
 import sass from 'node-sass';
 import nodeResolve from 'rollup-plugin-node-resolve';
 import fs from 'fs';
+import path from 'path';
 import moment from 'moment';
 import autoprefixer from 'autoprefixer';
 import postcss from 'postcss';
-// const cliSpinners = require('cli-spinners');
 import ora from 'ora';
 import chalk from 'chalk';
 import { liveReload } from './live-reload-server.js';
 import { terser } from 'rollup-plugin-terser';
 import prettier from 'rollup-plugin-prettier';
 import json from 'rollup-plugin-json';
-// const {rollupExtractConfig} = require('./rollup-extract-config');
-const defaultBrowserTarget = 'Edge >=12 and > 0% in alt-EU, Firefox >= 30 and > 0% in alt-EU, Chrome >= 30 and > 0% in alt-EU, Safari >= 7.1 and > 0% in alt-EU, ios_saf >= 6.0 and > 0% in alt-EU, last 1 and_ff version and > 0% in alt-EU, last 1 and_chr versions and > 0% in alt-EU, samsung >= 8.2 and > 0% in alt-EU, android >= 4.2 and > 0% in alt-EU';
+const defaultBrowserTarget = currentConfig.browserTarget;
 const babelOptions = (env = 'dev', babelOptions) => {
     let config = {
         'runtimeHelpers': true,
@@ -46,9 +36,6 @@ const babelOptions = (env = 'dev', babelOptions) => {
                     'targets': {
                         browsers: babelOptions.browserTarget ? babelOptions.browserTarget : defaultBrowserTarget,
                     },
-                    // 'debug': true,
-                    // 'useBuiltIns': 'usage',
-                    // 'corejs': 2,
                     'modules': false,
                 }]
         ],
@@ -61,14 +48,8 @@ const babelOptions = (env = 'dev', babelOptions) => {
         ]
     };
     if (babelOptions.longParse) {
-        // config.presets[0][1].corejs = '2';
-        // config.presets[0][1].useBuiltIns = 'usage';
     }
-    // if(babelOptions.debug){
-    // 	config.presets[0][1].debug = true;
-    // }
     if (env === 'prod') {
-        // config.plugins.push(['transform-remove-console', {'exclude': [ 'error', 'warn']}]);
     }
     return config;
 };
@@ -80,8 +61,7 @@ const bundleOptions = (env = 'dev', bundleOptions) => {
         string({
             include: '**/*.html',
         }),
-        json(), // support for including .json files as import
-        // rollupExtractConfig()
+        json(),
     ];
     if (env === 'dev') {
         bundlerModules.push(prettier({
@@ -98,13 +78,11 @@ const bundleOptions = (env = 'dev', bundleOptions) => {
         if (!bundleOptions.preventMinify) {
             bundlerModules.push(terser({
                 mangle: false
-            })); // minify and uglify the code so it's smaller
+            }));
         }
     }
     return bundlerModules;
 };
-// to keep track of last generated resources to push to websocket,
-// we store it here. So this is for when compiling JS, also sending the latest css with it
 const lastCompiledResources = {
     css: '',
     js: ''
@@ -134,25 +112,22 @@ const getResource = function (path) {
 };
 const requestTestFiles = function (test) {
     return __awaiter(this, void 0, void 0, function* () {
-        let testDir = rootDir + '/klanten/' + test.customer + '/' + test.test + (test.variation ? '/' + test.variation : ''), cssDevPath = testDir + '/generated/dev/output.css', jsDevPath = testDir + '/generated/dev/output.js';
-        // console.log({test, testDir, cssDevPath, jsDevPath})
+        let testDir = path.join(rootDir, currentConfig.rootDir, test.customer, '/', test.test, (test.variation ? test.variation : '')), cssDevPath = path.join(testDir, 'generated', 'dev', 'output.css'), jsDevPath = path.join(testDir, 'generated', 'dev', 'output.js');
         let css = yield getResource(cssDevPath), js = yield getResource(jsDevPath);
         return { css, js };
     });
 };
 const reloadSocket = new liveReload(requestTestFiles);
-const buildBundle = function (path, type = 'dev', extraSettings) {
+const buildBundle = function (targetPath, type = 'dev', extraSettings) {
     return __awaiter(this, void 0, void 0, function* () {
         let bundleSetting = {
             babelOptions: {}
         };
         if (extraSettings) {
             if (extraSettings.browserList) {
-                // shoudl do shings
                 bundleSetting.babelOptions.browserTarget = extraSettings.browserList;
             }
             if (extraSettings.parser) {
-                // shoudl do shings
                 bundleSetting.babelOptions.longParse = true;
             }
             if (extraSettings.nominify) {
@@ -161,18 +136,18 @@ const buildBundle = function (path, type = 'dev', extraSettings) {
         }
         let bundlePlugins = bundleOptions(type, bundleSetting);
         let bundle = yield rollup({
-            input: path,
+            input: targetPath,
             plugins: bundlePlugins,
             output: {
                 intro: '/* Compiled: ' + moment().format('DD-MM-YYYY HH:mm:ss') + ' */'
             }
         });
-        let projectFolder = path.substring(0, path.lastIndexOf('/')), bundleWriteOutputOptions = {
-            file: '',
+        let projectFolder = targetPath.substring(0, targetPath.lastIndexOf('/')), bundleWriteOutputOptions = {
+            file: path.join(projectFolder, 'generated', type, 'output.js'),
             format: 'iife',
             intro: `
 /**
-* SiteSpect Development
+* CRO Development
 * Compiled: ` + moment().format('DD-MM-YYYY HH:mm:ss') + `
 **/
 `
@@ -186,28 +161,25 @@ const buildBundle = function (path, type = 'dev', extraSettings) {
         switch (type) {
             case 'dev':
                 bundleWriteOptions.sourceMap = 'inline';
-                bundleWriteOutputOptions.file = projectFolder + '/generated/dev/output.js';
                 break;
             case 'prod':
-                bundleWriteOutputOptions.file = projectFolder + '/generated/prod/output.js';
                 break;
         }
         let output = yield bundle.write(bundleWriteOutputOptions);
         if (output.output[0].code) {
             let codeWithComment = output.output[0].code.replace(/\n$/g, '') + '\n/* Compiled: ' + moment().format('DD-MM-YYYY HH:mm:ss') + ' */';
             fs.writeFileSync(bundleWriteOptions.output.file, codeWithComment);
-            console.log('✓ Bundled, commented and moved into extension');
         }
         return output;
     });
 };
 const compilationSuccess = function (file, type) {
     let time = moment().format('HH:mm:ss');
-    console.log(chalk.white(chalk.bgGreenBright.black(' Lekker bezig! ') + ' ' + chalk.bgWhite.black(' ' + time + ' ') + ' ' + chalk.bgWhite.black(' ' + type + ' ') + ' ' + stripWorkDir(file)));
+    console.log(chalk.white(chalk.bgGreenBright.black(' Nice! ') + ' ' + chalk.bgWhite.black(' ' + time + ' ') + ' ' + chalk.bgWhite.black(' ' + type + ' ') + ' ' + stripWorkDir(file)));
 };
 const buildSiteSpectInclude = (changedFilePath) => {
     let projectFolder = getProjectFolder(changedFilePath);
-    const devJs = getFile(projectFolder + '/generated/dev/output.js'), devStyle = getFile(projectFolder + '/generated/dev/output.css'), prodJs = getFile(projectFolder + '/generated/prod/output.js'), prodStyle = getFile(projectFolder + '/generated/prod/output.css'), devOutFile = projectFolder + '/generated/sitespect-dev.html', prodOutFile = projectFolder + '/generated/sitespect-prod.html';
+    const devJs = getFile(path.join(projectFolder, 'generated', 'dev', 'output.js')), devStyle = getFile(path.join(projectFolder, 'generated', 'dev', 'output.css')), prodJs = getFile(path.join(projectFolder, 'generated', 'prod', 'output.js')), prodStyle = getFile(path.join(projectFolder, 'generated', 'prod', 'output.css')), devOutFile = path.join(projectFolder, 'generated', 'dev', 'output.html'), prodOutFile = path.join(projectFolder, 'generated', 'prod', 'output.html');
     let prodCode = '', devCode = '';
     if (devStyle) {
         devCode += `<style>
@@ -243,26 +215,25 @@ ${prodJs}
         }
     });
 };
-const buildSass = (path, type = 'dev') => __awaiter(void 0, void 0, void 0, function* () {
-    let projectFolder = getProjectFolder(path), buildOptions = {
-        file: projectFolder + '/index.scss',
+const buildSass = (targetPath, type = 'dev') => __awaiter(void 0, void 0, void 0, function* () {
+    let projectFolder = getProjectFolder(targetPath), buildOptions = {
+        file: path.join(projectFolder, 'index.scss'),
         outFile: null,
         outputStyle: 'compact',
         sourceMap: false
     };
-    if (!path.includes('.scss', '.sass')) {
+    if (!targetPath.includes('.scss', '.sass')) {
         return;
     }
     const spinner = ora({ text: 'CSS ' + type, interval: 10 }).start();
     switch (type) {
         case 'dev':
-            projectFolder + '/generated/prod/output.css';
-            buildOptions.outFile = projectFolder + '/generated/dev/output.css';
+            buildOptions.outFile = path.join(projectFolder, 'generated', 'dev', 'output.css');
             buildOptions.outputStyle = 'compact';
             buildOptions.sourceMap = false;
             break;
         case 'prod':
-            buildOptions.outFile = projectFolder + '/generated/prod/output.css';
+            buildOptions.outFile = path.join(projectFolder, 'generated', 'prod', 'output.css');
             buildOptions.outputStyle = 'compact';
             break;
     }
@@ -273,18 +244,15 @@ const buildSass = (path, type = 'dev') => __awaiter(void 0, void 0, void 0, func
     let cssResult = null;
     let result = yield new Promise((res, rej) => {
         try {
-            // console.log('shloud be', buildOptions)
             sass.render(buildOptions, (error, result) => {
-                // console.log(error, result);
                 if (!error) {
                     try {
                         cssResult = result.css.toString().replace(/^\n/gm, '');
                         if (type === 'prod') {
-                            postcss([autoprefixer({ overrideBrowserslist: 'last 3 versions' })]).process(cssResult, { map: false }).then(result => {
+                            postcss([autoprefixer({ overrideBrowserslist: 'last 3 versions' })]).process(cssResult, { map: false, from: undefined }).then(result => {
                                 result.warnings().forEach(warn => {
                                     console.warn(warn.toString());
                                 });
-                                // No errors during the compilation, write this result on the disk
                                 fs.writeFile(buildOptions.outFile, result.css, function (err) {
                                     if (err) {
                                         rej(err);
@@ -294,7 +262,6 @@ const buildSass = (path, type = 'dev') => __awaiter(void 0, void 0, void 0, func
                             });
                         }
                         else {
-                            // No errors during the compilation, write this result on the disk+
                             fs.writeFile(buildOptions.outFile, result.css.toString().replace(/^\n/gm, ''), function (err) {
                                 if (err) {
                                     rej(err);
@@ -315,8 +282,6 @@ const buildSass = (path, type = 'dev') => __awaiter(void 0, void 0, void 0, func
                     }
                     catch (error) {
                         console.error(error);
-                        // expected output: ReferenceError: nonExistentFunction is not defined
-                        // Note - error messages will vary depending on browser
                     }
                 }
                 else {
@@ -335,24 +300,22 @@ const buildSass = (path, type = 'dev') => __awaiter(void 0, void 0, void 0, func
         spinner.stop();
         compilationSuccess(buildOptions.outFile, 'css');
         lastCompiledResources.css = cssResult.toString();
-        let testinfo = yield getInfoFromPath(path);
-        // console.log('sending path info', testinfo)
+        let testinfo = yield getInfoFromPath(targetPath);
         reloadSocket.sendCSSUpdate(lastCompiledResources.css, testinfo);
     }
     spinner.stop();
 });
-const buildJavascript = (path) => __awaiter(void 0, void 0, void 0, function* () {
-    if (!path.includes('.js')) {
+const buildJavascript = (targetPath) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!targetPath.includes('.js')) {
         return;
     }
     const spinner = ora({ text: 'Bundeling & transpiling JS prod', interval: 10 }).start();
-    let testinfo = yield getInfoFromPath(path);
+    let testinfo = yield getInfoFromPath(targetPath);
     try {
-        yield buildBundle(path, 'prod', testinfo.js.headers).catch(err => {
+        yield buildBundle(targetPath, 'prod', testinfo.js.headers).catch(err => {
             console.error(err);
             throw new Error('Error transpiling');
         });
-        // console.log('result', bundleresult)
     }
     catch (error) {
         spinner.stop();
@@ -364,7 +327,7 @@ const buildJavascript = (path) => __awaiter(void 0, void 0, void 0, function* ()
         output: []
     };
     try {
-        devJSBundle = yield buildBundle(path, 'dev', testinfo.js.headers).catch(err => {
+        devJSBundle = yield buildBundle(targetPath, 'dev', testinfo.js.headers).catch(err => {
             console.error(err);
             throw new Error('Error transpiling ');
         });
@@ -376,8 +339,7 @@ const buildJavascript = (path) => __awaiter(void 0, void 0, void 0, function* ()
     }
     lastCompiledResources.js = devJSBundle.output[0].code;
     spinner.stop();
-    compilationSuccess(path, 'js');
-    // console.log('testinfo',testinfo)
+    compilationSuccess(targetPath, 'js');
     reloadSocket.sendJSUpdate(lastCompiledResources, testinfo);
 });
 const fileChanged = (path) => __awaiter(void 0, void 0, void 0, function* () {
@@ -398,18 +360,16 @@ const listenToFileChanges = function () {
         ignoreInitial: false,
         alwaysStat: false,
     };
-    const changeWatcher = chokidar.watch(rootDir + '/klanten', chokidarSettings);
+    const changeWatcher = chokidar.watch(path.join(rootDir, currentConfig.rootDir), chokidarSettings);
     changeWatcher.on('change', fileChanged);
 };
 const initTool = function () {
     console.log('/** ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
     console.log(' * CRO Development 4 life ♡');
-    listenToFileChanges(); // Use Chokadir to check for filechanges
+    listenToFileChanges();
     console.log(' * All projects are being watched. Have fun!');
     console.log(' * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */');
     console.log('\n');
 };
 initTool();
-/** Stop process from beeing terminated */
 process.stdin.resume();
-//# sourceMappingURL=index.js.map
