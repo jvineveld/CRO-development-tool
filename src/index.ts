@@ -13,8 +13,8 @@ import { rootDir, getFile, getInfoFromPath, ensureExists, stripWorkDir, getProje
 import { OutputOptions, rollup } from 'rollup';
 import { string } from 'rollup-plugin-string';
 import modify from 'rollup-plugin-modify';
-import babel from 'rollup-plugin-babel';
-import commonjs from 'rollup-plugin-commonjs';
+import { babel, RollupBabelInputPluginOptions } from '@rollup/plugin-babel';
+import commonjs from '@rollup/plugin-commonjs';
 import sass from 'node-sass';
 import { Options as SASS_Options } from 'node-sass';
 import nodeResolve from 'rollup-plugin-node-resolve';
@@ -46,17 +46,15 @@ interface BundleOptionsObj {
 	preventMinify?: boolean
 }
 
-const babelOptions = (env = 'dev', babelOptions: BabelOptionsObj) => {
-	let config = {
-		'runtimeHelpers': true,
+const babelOptions = (env = 'dev', babelOptions: BabelOptionsObj): RollupBabelInputPluginOptions => {
+	let config : RollupBabelInputPluginOptions = {
+		// 'runtimeHelpers': true,
+		babelHelpers: 'runtime',
 		'presets': [
 			['@babel/preset-env', {
 				'targets': {
 					browsers: babelOptions.browserTarget ? babelOptions.browserTarget : defaultBrowserTarget,
 				},
-				// 'debug': true,
-				// 'useBuiltIns': 'usage',
-				// 'corejs': 2,
 				'modules': false,
 			}]
 		],
@@ -69,17 +67,8 @@ const babelOptions = (env = 'dev', babelOptions: BabelOptionsObj) => {
 		]
 	}
 
-	if(babelOptions.longParse){
-		// config.presets[0][1].corejs = '2';
-		// config.presets[0][1].useBuiltIns = 'usage';
-	}
-
-	// if(babelOptions.debug){
-	// 	config.presets[0][1].debug = true;
-	// }
-
 	if(env==='prod'){
-		// config.plugins.push(['transform-remove-console', {'exclude': [ 'error', 'warn']}]);
+		config.plugins.push(['transform-remove-console', {'exclude': [ 'error', 'warn']}]);
 	}
 
 	return config;
@@ -245,7 +234,7 @@ const compilationSuccess = function(file: string, type){
 	console.log(chalk.white(chalk.bgGreenBright.black(' Nice! ') + ' ' + chalk.bgWhite.black(' '+ time+ ' ') + ' ' + chalk.bgWhite.black(' '+type+' ') + ' ' + stripWorkDir(file)));
 }
 
-const buildSiteSpectInclude = (changedFilePath) => {
+const buildHTMLfile = (changedFilePath) => {
 	let projectFolder = getProjectFolder(changedFilePath);
 
 	const devJs = getFile(path.join(projectFolder, 'generated', 'dev', 'output.js')),
@@ -287,13 +276,13 @@ ${prodJs}
 	
 	fs.writeFile(devOutFile, devCode, function(error){
 		if(error){
-			console.log('error in sitespect file generation:', error)
+			console.log('error in html file generation:', error)
 		}
 	});
 
 	fs.writeFile(prodOutFile, prodCode, function(error){
 		if(error){
-			console.log('error in sitespect file generation:', error)
+			console.log('error in html file generation:', error)
 		}
 	});
 }
@@ -457,7 +446,7 @@ const fileChanged = async (path: string) => {
 	if(path.includes('index.js')){
 		await buildJavascript(path)
 
-		buildSiteSpectInclude(path)
+		buildHTMLfile(path)
 	}
 
 	if(path.includes('.scss')){
@@ -465,7 +454,7 @@ const fileChanged = async (path: string) => {
 
 		await buildSass(path, 'dev')
 
-		buildSiteSpectInclude(path)
+		buildHTMLfile(path)
 	}
 }
 

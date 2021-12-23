@@ -12,8 +12,8 @@ import { rootDir, getFile, getInfoFromPath, ensureExists, stripWorkDir, getProje
 import { rollup } from 'rollup';
 import { string } from 'rollup-plugin-string';
 import modify from 'rollup-plugin-modify';
-import babel from 'rollup-plugin-babel';
-import commonjs from 'rollup-plugin-commonjs';
+import { babel } from '@rollup/plugin-babel';
+import commonjs from '@rollup/plugin-commonjs';
 import sass from 'node-sass';
 import nodeResolve from 'rollup-plugin-node-resolve';
 import fs from 'fs';
@@ -30,7 +30,7 @@ import json from 'rollup-plugin-json';
 const defaultBrowserTarget = currentConfig.browserTarget;
 const babelOptions = (env = 'dev', babelOptions) => {
     let config = {
-        'runtimeHelpers': true,
+        babelHelpers: 'runtime',
         'presets': [
             ['@babel/preset-env', {
                     'targets': {
@@ -50,6 +50,7 @@ const babelOptions = (env = 'dev', babelOptions) => {
     if (babelOptions.longParse) {
     }
     if (env === 'prod') {
+        config.plugins.push(['transform-remove-console', { 'exclude': ['error', 'warn'] }]);
     }
     return config;
 };
@@ -177,7 +178,7 @@ const compilationSuccess = function (file, type) {
     let time = moment().format('HH:mm:ss');
     console.log(chalk.white(chalk.bgGreenBright.black(' Nice! ') + ' ' + chalk.bgWhite.black(' ' + time + ' ') + ' ' + chalk.bgWhite.black(' ' + type + ' ') + ' ' + stripWorkDir(file)));
 };
-const buildSiteSpectInclude = (changedFilePath) => {
+const buildHTMLfile = (changedFilePath) => {
     let projectFolder = getProjectFolder(changedFilePath);
     const devJs = getFile(path.join(projectFolder, 'generated', 'dev', 'output.js')), devStyle = getFile(path.join(projectFolder, 'generated', 'dev', 'output.css')), prodJs = getFile(path.join(projectFolder, 'generated', 'prod', 'output.js')), prodStyle = getFile(path.join(projectFolder, 'generated', 'prod', 'output.css')), devOutFile = path.join(projectFolder, 'generated', 'dev', 'output.html'), prodOutFile = path.join(projectFolder, 'generated', 'prod', 'output.html');
     let prodCode = '', devCode = '';
@@ -206,12 +207,12 @@ ${prodJs}
     }
     fs.writeFile(devOutFile, devCode, function (error) {
         if (error) {
-            console.log('error in sitespect file generation:', error);
+            console.log('error in html file generation:', error);
         }
     });
     fs.writeFile(prodOutFile, prodCode, function (error) {
         if (error) {
-            console.log('error in sitespect file generation:', error);
+            console.log('error in html file generation:', error);
         }
     });
 };
@@ -345,12 +346,12 @@ const buildJavascript = (targetPath) => __awaiter(void 0, void 0, void 0, functi
 const fileChanged = (path) => __awaiter(void 0, void 0, void 0, function* () {
     if (path.includes('index.js')) {
         yield buildJavascript(path);
-        buildSiteSpectInclude(path);
+        buildHTMLfile(path);
     }
     if (path.includes('.scss')) {
         yield buildSass(path, 'prod');
         yield buildSass(path, 'dev');
-        buildSiteSpectInclude(path);
+        buildHTMLfile(path);
     }
 });
 const listenToFileChanges = function () {
