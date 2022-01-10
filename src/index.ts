@@ -140,7 +140,7 @@ const getResource = async function(path){
 }
 
 const requestTestFiles = async function(test){
-	let testDir = path.join(rootDir, currentConfig.rootDir, test.customer, '/', test.test, ( test.variation ? test.variation : '' )),
+	let testDir = path.join(rootDir, currentConfig.rootDir, test.customer, test.test, ( test.variation ? test.variation : '' )),
 		cssDevPath = path.join(testDir,'generated', 'dev', 'output.css'),
 		jsDevPath = path.join(testDir,'generated','dev', 'output.js')
 

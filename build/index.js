@@ -47,8 +47,6 @@ const babelOptions = (env = 'dev', babelOptions) => {
                 }]
         ]
     };
-    if (babelOptions.longParse) {
-    }
     if (env === 'prod') {
         config.plugins.push(['transform-remove-console', { 'exclude': ['error', 'warn'] }]);
     }
@@ -113,7 +111,7 @@ const getResource = function (path) {
 };
 const requestTestFiles = function (test) {
     return __awaiter(this, void 0, void 0, function* () {
-        let testDir = path.join(rootDir, currentConfig.rootDir, test.customer, '/', test.test, (test.variation ? test.variation : '')), cssDevPath = path.join(testDir, 'generated', 'dev', 'output.css'), jsDevPath = path.join(testDir, 'generated', 'dev', 'output.js');
+        let testDir = path.join(rootDir, currentConfig.rootDir, test.customer, test.test, (test.variation ? test.variation : '')), cssDevPath = path.join(testDir, 'generated', 'dev', 'output.css'), jsDevPath = path.join(testDir, 'generated', 'dev', 'output.js');
         let css = yield getResource(cssDevPath), js = yield getResource(jsDevPath);
         return { css, js };
     });

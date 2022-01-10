@@ -22,7 +22,7 @@ export class liveReload {
         const httpServer = createServer();
         this.server = new Server(httpServer, {});
         this.server.on("connection", (socket) => this.newConnection(socket));
-        httpServer.listen(6584);
+        httpServer.listen(6589);
     }
     createSocketHandlers(socket) {
         socket.on('hello', () => {
