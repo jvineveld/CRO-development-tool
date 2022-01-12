@@ -1,55 +1,58 @@
 {
-  "name": "cro-development-tool",
-  "version": "1.0.0",
-  "description": "A tool to quickly developer CRO tests with your favorite editor, using live reload, with SCSS and ES6 support",
-  "main": "build/index.js",
-  "scripts": {
-    "start": "node build/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc --project ./"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jvineveld/CRO-development-tool.git"
-  },
-  "type": "module",
-  "keywords": [
-    "CRO",
-    "development"
-  ],
-  "author": "Jonas van Ineveld",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/jvineveld/CRO-development-tool/issues"
-  },
-  "homepage": "https://github.com/jvineveld/CRO-development-tool#readme",
-  "dependencies": {
-    "@babel/core": "^7.16.5",
-    "@babel/plugin-transform-runtime": "^7.16.5",
-    "@babel/preset-env": "^7.16.5",
-    "@rollup/plugin-babel": "^5.3.0",
-    "@rollup/plugin-commonjs": "^21.0.1",
-    "autoprefixer": "^10.4.0",
-    "babel-plugin-transform-class-properties": "^6.24.1",
-    "babel-plugin-transform-remove-console": "^6.9.4",
-    "chalk": "^5.0.0",
-    "chokidar": "^3.5.2",
-    "moment": "^2.29.1",
-    "node-sass": "^7.0.0",
-    "ora": "^6.0.1",
-    "postcss": "^8.4.5",
-    "prettier": "^2.5.1",
-    "rollup": "^2.61.1",
-    "rollup-plugin-json": "^4.0.0",
-    "rollup-plugin-modify": "^3.0.0",
-    "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-prettier": "^2.2.0",
-    "rollup-plugin-string": "^3.0.0",
-    "rollup-plugin-terser": "^7.0.2",
-    "socket.io": "^4.4.0"
-  },
-  "devDependencies": {
-    "@types/node-sass": "^4.11.2",
-    "typescript": "^4.5.4"
-  }
+	"name": "cro-development-tool",
+	"version": "0.0.1",
+	"description": "A tool to quickly developer CRO tests with your favorite editor, using live reload, with SCSS and ES6 support",
+	"main": "build/index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "tsc --project ./",
+		"postinstall": "node build/post-install.js",
+		"start": "node node_modules/cro-development-tool/build/index.js",
+		"start-server": "node node_modules/cro-development-tool/build/index.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jvineveld/CRO-development-tool.git"
+	},
+	"type": "module",
+	"keywords": [
+		"CRO",
+		"development"
+	],
+	"author": "Jonas van Ineveld",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/jvineveld/CRO-development-tool/issues"
+	},
+	"homepage": "https://github.com/jvineveld/CRO-development-tool#readme",
+	"dependencies": {
+		"@babel/core": "^7.16.5",
+		"@babel/plugin-transform-runtime": "^7.16.5",
+		"@babel/preset-env": "^7.16.5",
+		"@rollup/plugin-babel": "^5.3.0",
+		"@rollup/plugin-commonjs": "^21.0.1",
+		"autoprefixer": "^10.4.0",
+		"babel-plugin-transform-class-properties": "^6.24.1",
+		"babel-plugin-transform-remove-console": "^6.9.4",
+		"chalk": "^5.0.0",
+		"chokidar": "^3.5.2",
+		"inquirer": "^8.2.0",
+		"moment": "^2.29.1",
+		"node-sass": "^7.0.0",
+		"ora": "^6.0.1",
+		"postcss": "^8.4.5",
+		"prettier": "^2.5.1",
+		"rollup": "^2.61.1",
+		"rollup-plugin-json": "^4.0.0",
+		"rollup-plugin-modify": "^3.0.0",
+		"rollup-plugin-node-resolve": "^5.2.0",
+		"rollup-plugin-prettier": "^2.2.0",
+		"rollup-plugin-string": "^3.0.0",
+		"rollup-plugin-terser": "^7.0.2",
+		"socket.io": "^4.4.0"
+	},
+	"devDependencies": {
+		"@types/node-sass": "^4.11.2",
+		"typescript": "^4.5.4"
+	}
 }
