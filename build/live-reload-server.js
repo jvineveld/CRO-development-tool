@@ -20,7 +20,12 @@ export class liveReload {
         this.subscribers = {};
         this.requestTestFiles = requestTestFiles;
         const httpServer = createServer();
-        this.server = new Server(httpServer, {});
+        this.server = new Server(httpServer, {
+            cors: {
+                origin: "*",
+                methods: ["GET", "POST"]
+            }
+        });
         this.server.on("connection", (socket) => this.newConnection(socket));
         httpServer.listen(6589);
     }
@@ -32,18 +37,18 @@ export class liveReload {
             socket.emit('projects_tree', fetchEntryPoints());
         });
         socket.on('get_test_info', (data) => __awaiter(this, void 0, void 0, function* () {
-            let path = data.testPath, info = yield getInfoFromPath(path.join(rootDir, currentConfig.rootDir, path));
+            let testPath = data.testPath, info = yield getInfoFromPath(path.join(rootDir, currentConfig.rootDir, testPath));
             setTimeout(() => socket.emit('got_test_info', { info }), 400);
         }));
         socket.on('subscribe_to_test', ({ test }) => {
             this.addSubscriber(test, socket.id);
         });
         socket.on('fetch_prod_css_content', ({ test }) => {
-            let cssFile = path.join(getTestPath(test.info), 'generated', 'prod', 'output.css');
+            let cssFile = path.join(getTestPath(test), 'generated', 'prod', 'output.css');
             socket.emit('css_file_contents', getFile(cssFile));
         });
         socket.on('fetch_prod_js_content', ({ test }) => {
-            let jsFile = path.join(getTestPath(test.info), 'generated', 'prod', 'output.js');
+            let jsFile = path.join(getTestPath(test), 'generated', 'prod', 'output.js');
             socket.emit('js_file_contents', getFile(jsFile));
         });
         socket.on('disconnect', socket => {

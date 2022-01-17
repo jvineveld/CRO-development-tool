@@ -22,7 +22,12 @@ export class liveReload {
 		this.requestTestFiles = requestTestFiles;
 
 		const httpServer = createServer();
-		this.server = new Server(httpServer, { /* optional settings */ });
+		this.server = new Server(httpServer, { 
+			cors: {
+				origin: "*",
+				methods: ["GET", "POST"]
+			}
+		});
 		this.server.on("connection", (socket: Socket) => this.newConnection(socket));
 
 		httpServer.listen(6589);
@@ -36,8 +41,8 @@ export class liveReload {
 			socket.emit('projects_tree', fetchEntryPoints())
 		});
 		socket.on('get_test_info', async data => {
-			let path = data.testPath,
-				info = await getInfoFromPath(path.join(rootDir, currentConfig.rootDir, path));
+			let testPath = data.testPath,
+				info = await getInfoFromPath(path.join(rootDir, currentConfig.rootDir, testPath));
 
 			setTimeout(() => socket.emit('got_test_info', { info }), 400);
 		})
@@ -45,12 +50,12 @@ export class liveReload {
 			this.addSubscriber(test, socket.id)
 		})
 		socket.on('fetch_prod_css_content', ({test}) => {
-			let cssFile = path.join(getTestPath(test.info), 'generated','prod', 'output.css')
+			let cssFile = path.join(getTestPath(test), 'generated','prod', 'output.css')
 			
 			socket.emit('css_file_contents', getFile(cssFile));
 		})
 		socket.on('fetch_prod_js_content', ({test}) => {
-			let jsFile = path.join(getTestPath(test.info), 'generated','prod', 'output.js')
+			let jsFile = path.join(getTestPath(test), 'generated','prod', 'output.js')
 			
 			socket.emit('js_file_contents', getFile(jsFile));
 		})
@@ -126,9 +131,6 @@ export class liveReload {
 
 	async sendInitialUpdate(socket_id, test) {
 		let data = await this.requestTestFiles(test)
-
-		// console.log('sending update!', data)
-		// console.log('sending initial files', test);
 
 		this.server.to(socket_id).emit('initial_resources', { ...data, customer: test.customer, test: test.test, variation: test.variation });
 	}

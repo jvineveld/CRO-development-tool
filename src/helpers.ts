@@ -160,17 +160,17 @@ const getCssJsResourceInfo = async (targetPath: string) => {
 	}
 }
 export const getInfoFromPath = async function(targetPath: string, withFileInfo = false){
-	let testPath = targetPath.replace(rootDir+ '/klanten/', ''),
+	let testPath = targetPath.replace(path.join(rootDir,currentConfig.rootDir), ''),
 		pathParts = testPath.split('/'),
 		variation : boolean | string = false
 
-	if(pathParts[2] && !pathParts[2].includes('.')){
-		variation = pathParts[2];
+	if(pathParts[3] && !pathParts[3].includes('.')){
+		variation = pathParts[3];
 	}
 
 	let returnVal = {
-		'customer': pathParts[0],
-		'test': pathParts[1],
+		'customer': pathParts[1],
+		'test': pathParts[2],
 		'variation': typeof variation === 'string' ? variation.replace(/includes$/, '') : variation,
 		'stats': null,
 		'js': {

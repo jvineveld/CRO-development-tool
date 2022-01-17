@@ -127,13 +127,13 @@ const getCssJsResourceInfo = (targetPath) => __awaiter(void 0, void 0, void 0, f
 });
 export const getInfoFromPath = function (targetPath, withFileInfo = false) {
     return __awaiter(this, void 0, void 0, function* () {
-        let testPath = targetPath.replace(rootDir + '/klanten/', ''), pathParts = testPath.split('/'), variation = false;
-        if (pathParts[2] && !pathParts[2].includes('.')) {
-            variation = pathParts[2];
+        let testPath = targetPath.replace(path.join(rootDir, currentConfig.rootDir), ''), pathParts = testPath.split('/'), variation = false;
+        if (pathParts[3] && !pathParts[3].includes('.')) {
+            variation = pathParts[3];
         }
         let returnVal = {
-            'customer': pathParts[0],
-            'test': pathParts[1],
+            'customer': pathParts[1],
+            'test': pathParts[2],
             'variation': typeof variation === 'string' ? variation.replace(/includes$/, '') : variation,
             'stats': null,
             'js': {
