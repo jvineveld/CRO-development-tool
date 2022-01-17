@@ -1,3 +1,12 @@
+/**
+ * This file will start a watcher on the /klanten/ folder
+ * when a change has been found in a file, it will try to compile the assats with babel
+ * and create a bundled file
+ *
+ * use the chrome plugin for hot reloading current page with css and js inject
+ *
+ * @author Jonas van Ineveld
+*/
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -21,15 +30,18 @@ import path from 'path';
 import moment from 'moment';
 import autoprefixer from 'autoprefixer';
 import postcss from 'postcss';
+// const cliSpinners = require('cli-spinners');
 import ora from 'ora';
 import chalk from 'chalk';
 import { liveReload } from './live-reload-server.js';
 import { terser } from 'rollup-plugin-terser';
 import prettier from 'rollup-plugin-prettier';
 import json from 'rollup-plugin-json';
+// const {rollupExtractConfig} = require('./rollup-extract-config');
 const defaultBrowserTarget = currentConfig.browserTarget;
 const babelOptions = (env = 'dev', babelOptions) => {
     let config = {
+        // 'runtimeHelpers': true,
         babelHelpers: 'runtime',
         'presets': [
             ['@babel/preset-env', {
@@ -60,7 +72,8 @@ const bundleOptions = (env = 'dev', bundleOptions) => {
         string({
             include: '**/*.html',
         }),
-        json(),
+        json(), // support for including .json files as import
+        // rollupExtractConfig()
     ];
     if (env === 'dev') {
         bundlerModules.push(prettier({
@@ -77,11 +90,13 @@ const bundleOptions = (env = 'dev', bundleOptions) => {
         if (!bundleOptions.preventMinify) {
             bundlerModules.push(terser({
                 mangle: false
-            }));
+            })); // minify and uglify the code so it's smaller
         }
     }
     return bundlerModules;
 };
+// to keep track of last generated resources to push to websocket,
+// we store it here. So this is for when compiling JS, also sending the latest css with it
 const lastCompiledResources = {
     css: '',
     js: ''
@@ -112,6 +127,7 @@ const getResource = function (path) {
 const requestTestFiles = function (test) {
     return __awaiter(this, void 0, void 0, function* () {
         let testDir = path.join(rootDir, currentConfig.rootDir, test.customer, test.test, (test.variation ? test.variation : '')), cssDevPath = path.join(testDir, 'generated', 'dev', 'output.css'), jsDevPath = path.join(testDir, 'generated', 'dev', 'output.js');
+        // console.log({test, testDir, cssDevPath, jsDevPath})
         let css = yield getResource(cssDevPath), js = yield getResource(jsDevPath);
         return { css, js };
     });
@@ -124,9 +140,11 @@ const buildBundle = function (targetPath, type = 'dev', extraSettings) {
         };
         if (extraSettings) {
             if (extraSettings.browserList) {
+                // shoudl do shings
                 bundleSetting.babelOptions.browserTarget = extraSettings.browserList;
             }
             if (extraSettings.parser) {
+                // shoudl do shings
                 bundleSetting.babelOptions.longParse = true;
             }
             if (extraSettings.nominify) {
@@ -243,7 +261,9 @@ const buildSass = (targetPath, type = 'dev') => __awaiter(void 0, void 0, void 0
     let cssResult = null;
     let result = yield new Promise((res, rej) => {
         try {
+            // console.log('shloud be', buildOptions)
             sass.render(buildOptions, (error, result) => {
+                // console.log(error, result);
                 if (!error) {
                     try {
                         cssResult = result.css.toString().replace(/^\n/gm, '');
@@ -252,6 +272,7 @@ const buildSass = (targetPath, type = 'dev') => __awaiter(void 0, void 0, void 0
                                 result.warnings().forEach(warn => {
                                     console.warn(warn.toString());
                                 });
+                                // No errors during the compilation, write this result on the disk
                                 fs.writeFile(buildOptions.outFile, result.css, function (err) {
                                     if (err) {
                                         rej(err);
@@ -261,6 +282,7 @@ const buildSass = (targetPath, type = 'dev') => __awaiter(void 0, void 0, void 0
                             });
                         }
                         else {
+                            // No errors during the compilation, write this result on the disk+
                             fs.writeFile(buildOptions.outFile, result.css.toString().replace(/^\n/gm, ''), function (err) {
                                 if (err) {
                                     rej(err);
@@ -281,6 +303,8 @@ const buildSass = (targetPath, type = 'dev') => __awaiter(void 0, void 0, void 0
                     }
                     catch (error) {
                         console.error(error);
+                        // expected output: ReferenceError: nonExistentFunction is not defined
+                        // Note - error messages will vary depending on browser
                     }
                 }
                 else {
@@ -300,6 +324,7 @@ const buildSass = (targetPath, type = 'dev') => __awaiter(void 0, void 0, void 0
         compilationSuccess(buildOptions.outFile, 'css');
         lastCompiledResources.css = cssResult.toString();
         let testinfo = yield getInfoFromPath(targetPath);
+        // console.log('sending path info', testinfo)
         reloadSocket.sendCSSUpdate(lastCompiledResources.css, testinfo);
     }
     spinner.stop();
@@ -315,6 +340,7 @@ const buildJavascript = (targetPath) => __awaiter(void 0, void 0, void 0, functi
             console.error(err);
             throw new Error('Error transpiling');
         });
+        // console.log('result', bundleresult)
     }
     catch (error) {
         spinner.stop();
@@ -339,6 +365,7 @@ const buildJavascript = (targetPath) => __awaiter(void 0, void 0, void 0, functi
     lastCompiledResources.js = devJSBundle.output[0].code;
     spinner.stop();
     compilationSuccess(targetPath, 'js');
+    // console.log('testinfo',testinfo)
     reloadSocket.sendJSUpdate(lastCompiledResources, testinfo);
 });
 const fileChanged = (path) => __awaiter(void 0, void 0, void 0, function* () {
@@ -365,10 +392,11 @@ const listenToFileChanges = function () {
 const initTool = function () {
     console.log('/** ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
     console.log(' * CRO Development 4 life ♡');
-    listenToFileChanges();
+    listenToFileChanges(); // Use Chokadir to check for filechanges
     console.log(' * All projects are being watched. Have fun!');
     console.log(' * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */');
     console.log('\n');
 };
 initTool();
+/** Stop process from beeing terminated */
 process.stdin.resume();

@@ -7,6 +7,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+/**
+ * Helper methods
+ *
+ * @author Jonas van Ineveld
+ */
 import { readdirSync } from 'fs';
 import path from 'path';
 import fs from 'fs';
@@ -23,6 +28,7 @@ const getConfig = () => {
     return Object.assign(Object.assign({}, defaultConfig), JSON.parse(fs.readFileSync(configFile, 'utf8')));
 };
 export const currentConfig = getConfig();
+// creates a unique identifier for the test so it can be organized and indexed
 export const createTestId = test => {
     return test.customer + '_' + test.test + (test.variation ? '_' + test.variation : '');
 };
@@ -62,6 +68,7 @@ export function getProjects() {
     return getDirectories('./' + currentConfig.rootDir);
 }
 ;
+// from https://gist.github.com/jadaradix/fd1ef195af87f6890448
 let getLines = function getLines(filename, lineCount) {
     return __awaiter(this, void 0, void 0, function* () {
         return new Promise((resolve, reject) => {
@@ -69,16 +76,18 @@ let getLines = function getLines(filename, lineCount) {
                 flags: 'r',
                 encoding: 'utf-8',
                 fd: null,
-                mode: 438,
+                mode: 438, // 0666 in Octal
+                // bufferSize: 64 * 1024,
             });
             let data = '';
             let lines = [];
             stream.on('data', function (moreData) {
                 data += moreData;
                 lines = data.split('\n');
+                // probably that last line is "corrupt" - halfway read - why > not >=
                 if (lines.length > lineCount + 1) {
                     stream.destroy();
-                    lines = lines.slice(0, lineCount);
+                    lines = lines.slice(0, lineCount); // junk as above
                     resolve(lines);
                 }
             });
@@ -154,7 +163,7 @@ export const getInfoFromPath = function (targetPath, withFileInfo = false) {
     });
 };
 export const ensureExists = function (path, mask, cb) {
-    if (typeof mask == 'function') {
+    if (typeof mask == 'function') { // allow the `mask` parameter to be optional
         cb = mask;
         mask = '0777';
     }
@@ -162,14 +171,14 @@ export const ensureExists = function (path, mask, cb) {
         if (err) {
             if (err.code == 'EEXIST') {
                 cb(null);
-            }
+            } // ignore the error if the folder already exists
             else {
                 cb(err);
-            }
+            } // something else went wrong
         }
         else {
             cb(null);
-        }
+        } // successfully created folder
     });
 };
 export function getProjectFolder(path) {

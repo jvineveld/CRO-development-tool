@@ -7,6 +7,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+/**
+ * Om onze testen nog sneller te developen een klein servertje wat een socket start
+ * Als je de chrome plugin installeert, krijg je live injectie / reload van je CRO test code.
+ *
+ * @author Jonas van Ineveld
+ */
+// server
 import { fetchEntryPoints, rootDir, currentConfig, getInfoFromPath, createTestId, getFile, getTestPath } from './helpers.js';
 import path from 'path';
 import { createServer } from "http";
@@ -80,12 +87,16 @@ export class liveReload {
         this.sendInitialUpdate(socket.id, test);
     }
     toggleTest(testToActivate) {
+        // console.log('cooowl', testToActivate)
     }
     testIsActive(testInfo) {
+        // console.log('checking if test is active', testInfo)
         let testId = createTestId(testInfo);
         if (this.subscribers[testId]) {
+            // console.log('found subscribers', this.subscribers)
             return this.subscribers[testId].length ? this.subscribers[testId] : false;
         }
+        // console.log('no subscribers', testId)
         return false;
     }
     newConnection(socket) {
@@ -113,6 +124,7 @@ export class liveReload {
             return;
         }
         for (let activeTest of activeTests) {
+            // console.log('updating client', activeTest.id)
             this.server.to(activeTest).emit('css_updated', { css, test: testInfo });
         }
     }
@@ -121,6 +133,7 @@ export class liveReload {
         if (!activeTests) {
             return;
         }
+        // console.log('sending js updates', testInfo)
         for (let activeTest of activeTests) {
             this.server.to(activeTest).emit('js_updated', js);
         }

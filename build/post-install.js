@@ -1,3 +1,8 @@
+/**
+ * after installation, assist to create config file and folder, and first project with some msg how to begin.
+ *
+ * @author Jonas van Ineveld
+ */
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -100,6 +105,7 @@ function postInstall() {
         }
         const projectFolder = path.join(path.resolve(), projectConfig.project_folder_name);
         if (!fs.existsSync(projectFolder)) {
+            // create folder
             fs.mkdirSync(projectFolder);
         }
         if (projectConfig.create_example_campaigns) {
