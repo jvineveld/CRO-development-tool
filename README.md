@@ -42,4 +42,6 @@ The campaign structure is like this:
 
 When running ```npm start``` the server with live reload, SCSS compiler, and JS compiler will start. But then you'll need to chrome extension to actually connect to this server, inject your changes and live reload the changes when you change your code.
 
-You can download the extension here: [@jvineveld/CRO-development-tool-chrome-extension](https://github.com/jvineveld/CRO-development-tool-chrome-extension)
+You can download the extension here: [https://drive.google.com/drive/folders/1B3W1RS3uW5Tbemm3h7wRyRYsxMjNc7U5?usp=sharing](https://drive.google.com/drive/folders/1B3W1RS3uW5Tbemm3h7wRyRYsxMjNc7U5?usp=sharing)
+
+Unpack the ZIP file, and load it in chrome as 'unpacked extension'
