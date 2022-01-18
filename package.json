@@ -1,6 +1,6 @@
 {
 	"name": "cro-development-tool",
-	"version": "0.0.2",
+	"version": "1.0.1",
 	"description": "A tool to quickly developer CRO tests with your favorite editor, using live reload, with SCSS and ES6 support",
 	"main": "build/index.js",
 	"scripts": {
