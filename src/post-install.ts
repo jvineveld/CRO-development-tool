@@ -81,7 +81,7 @@ async function postInstall(){
 		},
 	]);
 
-	const configFile = path.join(path.resolve(), 'config.json')
+	const configFile = path.join(path.resolve('..', '..'), 'config.json')
 
 	if(fs.existsSync(configFile)){
 		const overWrite = await inquirer.prompt([
@@ -99,7 +99,7 @@ async function postInstall(){
 		await writeConfigFile(configFile, projectConfig)
 	}
 
-	const projectFolder = path.join(path.resolve(), projectConfig.project_folder_name)
+	const projectFolder = path.join(path.resolve('..', '..'), projectConfig.project_folder_name)
 
 	if(!fs.existsSync(projectFolder)){
 		// create folder
@@ -121,7 +121,7 @@ async function postInstall(){
 
 	if(projectConfig.add_scripts_to_packagejson){
 		try {
-			const pkgJsonPath = path.join(path.resolve(), 'package.json')
+			const pkgJsonPath = path.join(path.resolve('..', '..'), 'package.json')
 			const pkgJson = fs.readFileSync(pkgJsonPath, { encoding: 'utf8' })
 			const data = JSON.parse(pkgJson)
 

@@ -87,7 +87,7 @@ function postInstall() {
                 message: "Create example campaigns and structure?",
             },
         ]);
-        const configFile = path.join(path.resolve(), 'config.json');
+        const configFile = path.join(path.resolve('..', '..'), 'config.json');
         if (fs.existsSync(configFile)) {
             const overWrite = yield inquirer.prompt([
                 {
@@ -103,7 +103,7 @@ function postInstall() {
         else {
             yield writeConfigFile(configFile, projectConfig);
         }
-        const projectFolder = path.join(path.resolve(), projectConfig.project_folder_name);
+        const projectFolder = path.join(path.resolve('..', '..'), projectConfig.project_folder_name);
         if (!fs.existsSync(projectFolder)) {
             // create folder
             fs.mkdirSync(projectFolder);
@@ -121,7 +121,7 @@ function postInstall() {
         var scriptKey = 'start';
         if (projectConfig.add_scripts_to_packagejson) {
             try {
-                const pkgJsonPath = path.join(path.resolve(), 'package.json');
+                const pkgJsonPath = path.join(path.resolve('..', '..'), 'package.json');
                 const pkgJson = fs.readFileSync(pkgJsonPath, { encoding: 'utf8' });
                 const data = JSON.parse(pkgJson);
                 const startScriptLine = 'node ' + path.join('node_modules', 'cro-development-tool', 'build', 'index.js');
